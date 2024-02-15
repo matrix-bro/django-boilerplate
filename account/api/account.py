@@ -6,6 +6,11 @@ from account.services.account_services import create_user_account
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 User = get_user_model()
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.utils import dateparse, timezone
+from django.http import JsonResponse
+from account.services.account_services import token_generator
 
 class RegisterView(APIView):
     class InputSerializer(serializers.ModelSerializer):
@@ -52,4 +57,65 @@ class RegisterView(APIView):
             'data': response.data,
             'status': status.HTTP_201_CREATED,
         }, status=status.HTTP_201_CREATED)
-  
+
+class ActivateUserAccount(APIView):
+    
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            token, expiry_date = token.split("_")
+            token = force_str(urlsafe_base64_decode(token))
+            expiry_date = force_str(urlsafe_base64_decode(expiry_date))
+            expiry_date = dateparse.parse_datetime(expiry_date)
+
+            if (not token) or (not expiry_date):
+                raise Exception
+            
+            current_time = timezone.now()
+
+            if current_time > expiry_date:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Token has expired.",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            user = User.objects.get(pk=uid)
+
+        except Exception as e:
+            user = None
+
+        if not token_generator.check_token(user, token):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Token is invalid or expired.",
+                    "code": status.HTTP_400_BAD_REQUEST,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user and token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Email verification completed successfully.",
+                    "code": status.HTTP_200_OK,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Email verification failed.",
+                "code": status.HTTP_400_BAD_REQUEST,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

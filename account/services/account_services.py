@@ -29,7 +29,7 @@ def create_user_account(first_name, last_name, email, password):
     return user
 
 def send_activation_email(first_name, email, user_id, token):
-    expiry_date = timezone.now() + timedelta(minutes=1)
+    expiry_date = timezone.now() + timedelta(hours=1)
     subject = "Activate your account"
     email_body = render_to_string(
         "account/activate_email.html",
