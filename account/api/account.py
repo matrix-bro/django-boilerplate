@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import serializers,status
+from rest_framework import serializers, status, permissions
 from django.contrib.auth import get_user_model
 from account.services.account_services import create_user_account
 from django.contrib.auth.password_validation import validate_password
@@ -11,6 +11,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils import dateparse, timezone
 from django.http import JsonResponse
 from account.services.account_services import token_generator
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class RegisterView(APIView):
     class InputSerializer(serializers.ModelSerializer):
@@ -119,3 +120,17 @@ class ActivateUserAccount(APIView):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+    
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Get the refresh_token and blacklist it
+            refresh_token = request.data['refresh_token']
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
