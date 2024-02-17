@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import serializers, status, permissions
 from django.contrib.auth import get_user_model
-from account.services.account_services import create_user_account
+from account.services.account_services import create_user_account, send_reset_password_email
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 User = get_user_model()
@@ -134,3 +134,29 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+class ForgotPassword(APIView):
+    class InputSerializer(serializers.Serializer):
+        email = serializers.EmailField()
+    
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        validated_email = serializer.validated_data['email']
+
+        try:
+            user = User.objects.get(email=validated_email)
+        except:
+            return Response({
+                'success': 'User not found.',
+                'status': status.HTTP_400_BAD_REQUEST,
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Send email
+        send_reset_password_email(user)
+
+        return Response({
+            'success': f'A reset password link has been sent to {validated_email}',
+            'status': status.HTTP_200_OK,
+        }, status=status.HTTP_200_OK) 

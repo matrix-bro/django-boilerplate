@@ -52,3 +52,27 @@ def send_activation_email(first_name, email, user_id, token):
     email.attach_alternative(email_body, "text/html")
     email.send()
 
+def send_reset_password_email(user):
+    token = token_generator.make_token(user)
+    expiry_date = timezone.now() + timedelta(minutes=30)
+    subject = "Reset your password"
+    email_body = render_to_string(
+        "account/reset_password_email.html",
+        {
+            "first_name": user.first_name,
+            "domain": "http://localhost:8000/",
+            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+            "token": urlsafe_base64_encode(force_bytes(token))
+            + "_"
+            + urlsafe_base64_encode(force_bytes(str(expiry_date))),
+        }
+    )
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        from_email="admin@site.com",
+        to=[user.email]
+    )
+
+    email.attach_alternative(email_body, "text/html")
+    email.send()
