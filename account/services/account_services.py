@@ -101,3 +101,5 @@ def check_token_validity(uidb64, token):
 
     if not token_generator.check_token(user, token):
         raise serializers.ValidationError("Token is invalid or expired.")
+    
+    return user
