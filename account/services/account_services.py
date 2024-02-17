@@ -3,11 +3,12 @@ User = get_user_model()
 from django.template.loader import render_to_string
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 import six
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.utils import timezone
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.utils import timezone, dateparse
 from datetime import timedelta
 from django.core.mail import EmailMultiAlternatives
+from rest_framework import serializers
 
 class TokenGenerator(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
@@ -76,3 +77,27 @@ def send_reset_password_email(user):
 
     email.attach_alternative(email_body, "text/html")
     email.send()
+
+def check_token_validity(uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        token, expiry_date = token.split("_")
+        token = force_str(urlsafe_base64_decode(token))
+        expiry_date = force_str(urlsafe_base64_decode(expiry_date))
+        expiry_date = dateparse.parse_datetime(expiry_date)
+
+        if (not token) or (not expiry_date):
+            raise Exception
+        
+        current_time = timezone.now()
+
+        if current_time > expiry_date:
+            raise serializers.ValidationError("Token has expired.")
+        
+        user = User.objects.get(pk=uid)
+
+    except Exception as e:
+        user = None
+
+    if not token_generator.check_token(user, token):
+        raise serializers.ValidationError("Token is invalid or expired.")

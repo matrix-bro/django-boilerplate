@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import serializers, status, permissions
 from django.contrib.auth import get_user_model
-from account.services.account_services import create_user_account, send_reset_password_email
+from account.services.account_services import create_user_account, send_reset_password_email, check_token_validity
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 User = get_user_model()
@@ -159,4 +159,14 @@ class ForgotPassword(APIView):
         return Response({
             'success': f'A reset password link has been sent to {validated_email}',
             'status': status.HTTP_200_OK,
-        }, status=status.HTTP_200_OK) 
+        }, status=status.HTTP_200_OK)
+    
+class VerifyPasswordResetToken(APIView):
+    def get(self, request, uidb64, token):
+        
+        check_token_validity(uidb64, token)
+
+        return Response({
+            'success': 'A token has been verified.',
+            'status': status.HTTP_200_OK,
+        }, status=status.HTTP_200_OK)

@@ -9,4 +9,5 @@ urlpatterns = [
     path('activate-account/<str:uidb64>/<str:token>/', account.ActivateUserAccount.as_view(), name='activate_user_account'),
     path('logout/', account.LogoutView.as_view(), name='logout'),
     path('forgot-password/', account.ForgotPassword.as_view(), name='forgot_password'),
+    path('verify-reset-token/<str:uidb64>/<str:token>/', account.VerifyPasswordResetToken.as_view(), name='verify_reset_token'),
 ]
