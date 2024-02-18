@@ -2,11 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import serializers, status, permissions
 from django.contrib.auth import get_user_model
-from account.services.account_services import create_user_account, send_reset_password_email, check_token_validity
+from account.services.account_services import create_user_account, send_reset_password_email, check_token_validity, reset_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 User = get_user_model()
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 
 class RegisterView(APIView):
     class InputSerializer(serializers.ModelSerializer):
@@ -128,5 +130,29 @@ class VerifyPasswordResetToken(APIView):
 
         return Response({
             'success': 'A token has been verified.',
+            'status': status.HTTP_200_OK,
+        }, status=status.HTTP_200_OK)
+    
+class ResetPassword(APIView):
+    class InputSerializer(serializers.Serializer):
+        new_password = serializers.CharField()
+        password_confirm = serializers.CharField()
+
+        def validate(self, attrs):
+            if attrs['new_password'] != attrs['password_confirm']:
+                raise serializers.ValidationError({"password": "Passwords didn't match."})
+            return attrs
+    
+    def put(self, request, uidb64, token):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        password = serializer.validated_data['new_password']
+
+        user = check_token_validity(uidb64, token)
+        reset_password(user, password)
+
+        return Response({
+            'success': 'Password reset successfully.',
             'status': status.HTTP_200_OK,
         }, status=status.HTTP_200_OK)

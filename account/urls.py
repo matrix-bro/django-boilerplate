@@ -10,4 +10,5 @@ urlpatterns = [
     path('logout/', account.LogoutView.as_view(), name='logout'),
     path('forgot-password/', account.ForgotPassword.as_view(), name='forgot_password'),
     path('verify-reset-token/<str:uidb64>/<str:token>/', account.VerifyPasswordResetToken.as_view(), name='verify_reset_token'),
+    path('reset-password/<str:uidb64>/<str:token>/', account.ResetPassword.as_view(), name='reset_password'),
 ]

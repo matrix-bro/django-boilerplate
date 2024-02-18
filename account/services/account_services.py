@@ -103,3 +103,11 @@ def check_token_validity(uidb64, token):
         raise serializers.ValidationError("Token is invalid or expired.")
     
     return user
+
+def reset_password(user, password):
+    user.set_password(password)
+
+    try:
+        user.save()
+    except:
+        raise serializers.ValidationError("Unexpected error occurred while resetting your password.")
